@@ -41,8 +41,8 @@ def analyze_image():
         image_bytes = file.read()
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Configurar o modelo Gemini
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Configurar o modelo Gemini - usar gemini-2.5-flash (rápido e eficiente para análise de imagens)
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Prompt otimizado para detecção de imagens geradas por IA
         prompt = """Analise cuidadosamente esta imagem e determine a probabilidade de ela ter sido gerada por uma inteligência artificial (especialmente modelos de geração de imagem como Imagen, DALL-E, Midjourney, Stable Diffusion, etc.).
