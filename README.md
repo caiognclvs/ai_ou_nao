@@ -1,16 +1,25 @@
-# 🤖 AI ou Não? - Detector de Imagens IA
+# 🤖 AI ou Não? - Detector de Imagens do Google Gemini
 
-Uma aplicação web que detecta se uma imagem foi gerada por Inteligência Artificial usando a API do Google Gemini.
+Uma aplicação web que detecta se uma imagem foi gerada pelo **Google Gemini/Imagen** usando a API do Google Gemini e busca por SynthID.
 
 ## 📋 Sobre o Projeto
 
-Esta aplicação permite que usuários façam upload de imagens e recebam uma análise sobre a probabilidade da imagem ter sido gerada por IA. Utiliza o modelo Gemini do Google para analisar características visuais e padrões típicos de imagens geradas por IA.
+Esta aplicação permite que usuários façam upload de imagens e recebam uma análise sobre a probabilidade da imagem ter sido gerada especificamente pelo **Google Gemini/Imagen**. O sistema busca pela marca d'água digital **SynthID** (invisível) e analisa características visuais específicas dos modelos de IA do Google.
+
+### 🎯 Foco: Detecção SynthID
+
+**SynthID** é a tecnologia de marca d'água imperceptível do Google incorporada em imagens geradas por seus modelos de IA. O sistema analisa:
+- Presença de SynthID (marca d'água digital do Google)
+- Padrões de renderização específicos do Imagen/Gemini
+- Estilo visual característico dos modelos do Google
+- Diferenciação de outros geradores (DALL-E, Midjourney, Stable Diffusion)
 
 ### ⚠️ Limitações e Avisos
 
 - **Precisão Limitada**: Esta ferramenta usa IA para analisar IA, portanto não é 100% precisa
 - **Estimativa**: Os resultados devem ser interpretados como estimativas, não como certezas absolutas
-- **Detecção Genérica**: Detecta características gerais de imagens IA (não apenas do Google)
+- **Foco Específico**: Detecta apenas imagens do Google Gemini/Imagen (não outras IAs)
+- **SynthID**: A detecção de SynthID depende da capacidade do modelo de identificar padrões imperceptíveis
 - **Uso Local**: Esta versão é configurada apenas para execução local
 
 ## 🛠️ Tecnologias Utilizadas
@@ -113,19 +122,21 @@ O frontend abrirá automaticamente em: http://localhost:3000
 3. Clique em "Analisar Imagem"
 4. Aguarde alguns segundos pela análise
 5. Veja o resultado com:
-   - **Probabilidade** (0-100%) de ser IA
-   - **Classificação** (Muito provável IA, Provavelmente real, etc.)
-   - **Análise descritiva** explicando os indicadores
+   - **Probabilidade** (0-100%) de ter sido gerada pelo Google Gemini/Imagen
+   - **Classificação** (Muito provável do Google, Provavelmente não é do Google, etc.)
+   - **Análise descritiva** explicando se detectou SynthID e outros indicadores específicos do Google
 
 ## 🎨 Funcionalidades
 
 - ✅ Upload de imagens por drag-and-drop ou seleção manual
 - ✅ Preview da imagem antes da análise
-- ✅ Análise usando Google Gemini
+- ✅ Análise usando Google Gemini com foco em SynthID
+- ✅ Detecção específica de imagens do Google (não outras IAs)
 - ✅ Visualização de probabilidade em gráfico circular
-- ✅ Classificação por cores (vermelho = IA, verde = real)
-- ✅ Análise descritiva dos indicadores
+- ✅ Classificação por cores (vermelho = Google Gemini, verde = não é do Google)
+- ✅ Análise descritiva dos indicadores incluindo SynthID
 - ✅ Interface responsiva e moderna
+- ✅ 3 tipos de análise: padrão, rápida e detalhada (POO)
 
 ## 📁 Estrutura do Projeto
 

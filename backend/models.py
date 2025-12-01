@@ -54,15 +54,15 @@ class AnalysisResult:
     
     def __determine_classification(self) -> str:
         if self.__probability >= 80:
-            return "Muito provável IA"
+            return "Muito provável do Google Gemini"
         elif self.__probability >= 60:
-            return "Provavelmente IA"
+            return "Provavelmente do Google Gemini"
         elif self.__probability >= 40:
             return "Incerto"
         elif self.__probability >= 20:
-            return "Provavelmente real"
+            return "Provavelmente não é do Google"
         else:
-            return "Muito provável real"
+            return "Muito provável que não é do Google"
     
     @property
     def probability(self) -> int:
