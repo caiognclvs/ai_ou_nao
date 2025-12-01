@@ -1,123 +1,147 @@
+"""
+Aplicação Flask para detecção de imagens geradas por IA.
+Refatorado usando Programação Orientada a Objetos (POO).
+
+Demonstra todos os conceitos de POO:
+- Classes e Objetos
+- Encapsulamento
+- Herança
+- Polimorfismo
+- Exceções
+"""
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import google.generativeai as genai
 import os
 from dotenv import load_dotenv
-import base64
-from PIL import Image
-import io
+
+# Importar classes POO do sistema
+from services import AIDetectionService
+from exceptions import AIDetectionException, APIKeyMissingException
 
 # Carregar variáveis de ambiente
 load_dotenv()
 
+# Inicializar aplicação Flask
 app = Flask(__name__)
 CORS(app)  # Permitir requisições do frontend React
 
-# Configurar API do Gemini
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+# Inicializar serviço de detecção (OBJETO da classe AIDetectionService)
+try:
+    detection_service = AIDetectionService()
+    print(f"✅ Serviço inicializado: {detection_service}")
+except APIKeyMissingException as e:
+    print(f"⚠️  AVISO: {e.message}")
+    print("Por favor, crie um arquivo .env com sua chave da API do Gemini")
+    detection_service = None
+
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    """Endpoint para verificar se o servidor está funcionando"""
-    return jsonify({'status': 'ok', 'message': 'Backend está funcionando!'})
+    """
+    Endpoint para verificar se o servidor está funcionando.
+    Usa o método health_check do serviço (ENCAPSULAMENTO)
+    """
+    if detection_service and detection_service.is_configured:
+        return jsonify(detection_service.health_check())
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Serviço não configurado corretamente',
+            'api_configured': False
+        }), 503
+
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_image():
     """
-    Endpoint para analisar se uma imagem foi gerada por IA
-    Espera um arquivo de imagem no form-data
+    Endpoint para analisar se uma imagem foi gerada por IA.
+    Usa o serviço de detecção que orquestra todas as classes POO.
+    
+    Parâmetros:
+        - image: arquivo de imagem (form-data)
+        - type: tipo de análise ('standard', 'fast', 'detailed') - opcional
     """
-    try:
-        # Verificar se o arquivo foi enviado
-        if 'image' not in request.files:
-            return jsonify({'error': 'Nenhuma imagem foi enviada'}), 400
-        
-        file = request.files['image']
-        
-        if file.filename == '':
-            return jsonify({'error': 'Nenhuma imagem selecionada'}), 400
-        
-        # Ler a imagem
-        image_bytes = file.read()
-        image = Image.open(io.BytesIO(image_bytes))
-        
-        # Configurar o modelo Gemini - usar gemini-2.5-flash (rápido e eficiente para análise de imagens)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        # Prompt otimizado para detecção de imagens geradas por IA
-        prompt = """Analise cuidadosamente esta imagem e determine a probabilidade de ela ter sido gerada por uma inteligência artificial (especialmente modelos de geração de imagem como Imagen, DALL-E, Midjourney, Stable Diffusion, etc.).
-
-Considere os seguintes aspectos:
-1. Artefatos visuais típicos de IA (dedos extras, texto distorcido, inconsistências físicas)
-2. Padrões de textura artificiais ou muito perfeitos
-3. Iluminação e sombras inconsistentes
-4. Elementos que desafiam a física ou anatomia
-5. Qualidade e estilo típicos de imagens geradas por IA
-6. Presença de "AI watermarks" ou padrões específicos
-
-Responda APENAS com um número entre 0 e 100, onde:
-- 0 significa certeza de que é uma foto real
-- 100 significa certeza de que foi gerada por IA
-- Valores intermediários representam o nível de confiança
-
-Forneça APENAS o número, sem explicações adicionais."""
-
-        # Fazer a análise com o Gemini
-        response = model.generate_content([prompt, image])
-        
-        # Extrair a probabilidade da resposta
-        try:
-            probability = int(response.text.strip())
-            # Garantir que está no intervalo 0-100
-            probability = max(0, min(100, probability))
-        except ValueError:
-            # Se não conseguir converter, tentar extrair número do texto
-            import re
-            numbers = re.findall(r'\d+', response.text)
-            if numbers:
-                probability = int(numbers[0])
-                probability = max(0, min(100, probability))
-            else:
-                probability = 50  # Valor padrão em caso de erro
-        
-        # Gerar análise descritiva
-        analysis_prompt = f"""Com base na probabilidade de {probability}% de esta imagem ter sido gerada por IA, forneça uma breve análise (2-3 frases) explicando os principais indicadores que levaram a essa conclusão."""
-        
-        analysis_response = model.generate_content([analysis_prompt, image])
-        analysis_text = analysis_response.text.strip()
-        
-        # Determinar classificação
-        if probability >= 80:
-            classification = "Muito provável IA"
-        elif probability >= 60:
-            classification = "Provavelmente IA"
-        elif probability >= 40:
-            classification = "Incerto"
-        elif probability >= 20:
-            classification = "Provavelmente real"
-        else:
-            classification = "Muito provável real"
-        
+    # Verificar se o serviço está configurado
+    if not detection_service or not detection_service.is_configured:
         return jsonify({
-            'probability': probability,
-            'classification': classification,
-            'analysis': analysis_text,
-            'success': True
-        })
+            'error': 'Serviço de detecção não está configurado',
+            'success': False
+        }), 503
+    
+    try:
+        # Obter arquivo da requisição
+        if 'image' not in request.files:
+            return jsonify({'error': 'Nenhuma imagem foi enviada', 'success': False}), 400
+        
+        image_file = request.files['image']
+        
+        # Obter tipo de análise (opcional)
+        analysis_type = request.form.get('type', 'standard')
+        
+        # Validar tipo de análise
+        valid_types = ['standard', 'fast', 'detailed']
+        if analysis_type not in valid_types:
+            analysis_type = 'standard'
+        
+        # Analisar imagem usando o serviço (POLIMORFISMO - diferentes analisadores)
+        result = detection_service.analyze_image(image_file, analysis_type)
+        
+        # Retornar resultado (usa método to_dict do AnalysisResult - ENCAPSULAMENTO)
+        return jsonify(result.to_dict())
+    
+    except AIDetectionException as e:
+        # Tratar exceções customizadas (EXCEÇÕES)
+        print(f"Erro de detecção: {e.message} (Código: {e.error_code})")
+        return jsonify(e.to_dict()), 400
     
     except Exception as e:
-        print(f"Erro ao processar imagem: {str(e)}")
+        # Tratar exceções gerais
+        print(f"Erro inesperado: {str(e)}")
         return jsonify({
             'error': f'Erro ao processar imagem: {str(e)}',
             'success': False
         }), 500
 
+
+@app.route('/api/analysis-types', methods=['GET'])
+def get_analysis_types():
+    """
+    Endpoint para listar os tipos de análise disponíveis.
+    Demonstra o uso de constantes de classe (ENCAPSULAMENTO)
+    """
+    return jsonify({
+        'types': [
+            {
+                'id': AIDetectionService.ANALYSIS_STANDARD,
+                'name': 'Análise Padrão',
+                'description': 'Análise balanceada entre velocidade e precisão'
+            },
+            {
+                'id': AIDetectionService.ANALYSIS_FAST,
+                'name': 'Análise Rápida',
+                'description': 'Análise mais rápida com menor precisão'
+            },
+            {
+                'id': AIDetectionService.ANALYSIS_DETAILED,
+                'name': 'Análise Detalhada',
+                'description': 'Análise mais profunda e precisa (mais lenta)'
+            }
+        ]
+    })
+
+
 if __name__ == '__main__':
-    # Verificar se a API key está configurada
-    if not os.getenv('GEMINI_API_KEY'):
-        print("⚠️  AVISO: GEMINI_API_KEY não está configurada!")
-        print("Por favor, crie um arquivo .env com sua chave da API do Gemini")
+    print("\n" + "="*60)
+    print("🤖 AI Detection Service - Backend POO")
+    print("="*60)
+    
+    if detection_service and detection_service.is_configured:
+        print(f"✅ Modelo: {detection_service.model_name}")
+        print("✅ Serviço pronto para uso!")
     else:
-        print("✅ API Key do Gemini configurada!")
+        print("⚠️  Serviço não configurado - verifique a API key")
+    
+    print("="*60 + "\n")
     
     app.run(debug=True, port=5000)
